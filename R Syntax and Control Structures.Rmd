@@ -6,7 +6,6 @@ output:
   html_document:
     df_print: paged
   pdf_document: default
-  word_document: default
 ---
 
 ## Question 1
