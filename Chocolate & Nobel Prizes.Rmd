@@ -2,7 +2,7 @@
 title: "SDGB 7844 HW 1: Chocolate & Nobel Prizes"
 author: "Jiayin Hu"
 date: "2019/2/7"
-output: word_document
+output: pdf_document
 ---
 Before the questions and answers, we list the R packages we need in this homework report. 
 ```{r, message = FALSE}
