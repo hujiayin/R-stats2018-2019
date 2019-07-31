@@ -2,7 +2,7 @@
 title: "SDGB 7844 HW 3: Capture-Recapture Method"
 author: "Jiayin Hu"
 date: "2018/11/1"
-output: word_document
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
