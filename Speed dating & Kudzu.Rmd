@@ -2,7 +2,7 @@
 title: "SDGB 7840 Homework 4"
 author: "Name: Jiayin Hu Class Time: 3:30-5:30pm"
 date: "2019/4/25"
-output: word_document
+output: pdf_document
 ---
 Before the homework, we list the library we need first.
 ```{r message=FALSE, warning=FALSE}
