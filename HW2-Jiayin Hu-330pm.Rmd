@@ -2,7 +2,7 @@
 title: "SDGB 7840 Homework 2"
 author: "Jiayin Hu"
 date: "2019/2/28"
-output: word_document
+output: pdf_document
 mainfont: Euclid
 ---
 Before the homework, we first list the library we use.
