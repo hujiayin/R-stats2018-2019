@@ -1,0 +1,285 @@
+---
+title: "SDGB 7840 Homework 2"
+author: "Jiayin Hu"
+date: "2019/2/28"
+output: word_document
+mainfont: Euclid
+---
+Before the homework, we first list the library we use.
+```{r message = FALSE}
+#setting the packages needed
+require(tidyverse)
+require(GGally)
+require(knitr)
+require(leaps)
+require(gridExtra)
+require(DAAG)
+
+```
+#Q1
+
+(a) &nbsp;
+
+A wine “vintage” means the year which fresh grapes are ripe and the wine is made in.
+
+(b) &nbsp;
+
+In these three models, the response variable is logarithm of the price of different vintages of a portfolio of Bordeaux chateau wines.
+
+```{r warning=FALSE}
+# read the data from the file and have a look at the dataframe
+# to make sure the variables are in the right type. 
+# Change LPRICE2 and DEGREES as numerical type data.
+wine.data <- read_delim("wine.dat", col_names=TRUE, delim=",")
+wine.data
+
+wine.data$LPRICE2 <- as.numeric(wine.data$LPRICE2)
+wine.data$DEGREES <- as.numeric(wine.data$DEGREES)
+
+# check missing data
+apply(wine.data, 2, function(x) sum(is.na(x)))
+```
+
+(c) &nbsp;
+
+There are 11 vintages with missing LPRICE2.
+
+The wine made in 1954 and 1956 are now rarely sold because of their poor quality.
+
+The data of 1981-1989 is set to be predicted, so only explanatory data provided.
+```{r}
+# check the vintages with missing price
+wine.data[is.na(wine.data$LPRICE2)==TRUE, "VINT"]
+```
+
+
+(d) &nbsp;
+```{r warning=FALSE}
+ggscatmat(data = wine.data, columns = c("VINT", "WRAIN", "DEGREES", "HRAIN", "LPRICE2"),
+          color = NULL, alpha = 0.8)
+```
+We can see that the points in the scatterplots of each pairs of explanatory variables are basically random without any relationship. 
+
+For response variable log of the price, we can see it is obviously positively linearly related between the temperature ($\text{Cov}=0.67$). The vintage ($\text{Cov}=-0.46$) and "HRAIN" ($\text{Cov}=-0.51$) are negatively linearly related with log of the price. The points in "WRAIN" vs. log of the price are pretty irregular and the correlation coefficient is also low.
+
+(e) &nbsp;
+
+We call the model with only vintage vatiable as model 1 and the full model as model 2.
+
+Model 2 is better than model 1. This is the same with the author's point of view.
+
+According to the p-values of F-statistic (model 1: 0.01567, model 2: $4.058 \times 10^8$), these two models are statistically significant.
+In these two models, all the coefficients are significant based on their p-value.
+In model 1, $R^2 = 0.212$, which means only 21.2% of the variation in log of the price can be exlained by vintage. In model 2, $R^2 = 0.8275$, significantly higher than that of model 1. $R_{a}^2 = 0.7962$ is also high. So model 2 can explain more variation in log of price.
+```{r}
+lm.wine1 <- lm(data = wine.data, LPRICE2 ~ VINT)
+summary(lm.wine1)
+```
+```{r}
+lm.wine2 <- lm(data = wine.data[,1:5], LPRICE2 ~ .)
+summary(lm.wine2)
+```
+
+
+(f) &nbsp;
+
+The programming automatically choose samples with complete data.
+The sample years are from 1952-1980 (except 1954 and 1956), so the sample size is 27.
+
+(g) &nbsp;
+
+The regression equation is
+$$
+\begin{split}
+log(price) = &35.1440862 (log(\$)) -0.0238474 (log(\$)/year) \times VINT \\
+&+ 0.0011668 (log (\$)/mm) \times WRAIN+ 0.6163924 (log(\$)/^{\circ}C) \times DEGREES\\ &-0.0038606(log (\$)/mm) \times HRAIN
+\end{split}
+$$
+Partial slope for VINT: 1 unit increase in VINT is associated with 2.36% decrease in price.
+
+Partial slope for WRAIN: 1 unit increase in WRAIN is associated with 0.12% increase in price.
+
+Partial slope for DEGREES: 1 unit increase in DEGREES is associated with 85.22% increase in price.
+
+Partial slope for HRAIN: 1 unit increase in HRAIN is associated with 3.85% decrease in price.
+
+y-intercept: When other variable is 0, the log of price is 35.1440862. 
+
+The y-intercept is meaningless in practice because it is not reasonable we set VINT variable as 0. 
+
+
+(h)&nbsp;
+
+```{r}
+RMSE <- c(summary(lm.wine1)$sigma, summary(lm.wine2)$sigma)
+SSE <- c(sum(summary(lm.wine1)$residuals^2), sum(summary(lm.wine2)$residuals^2))
+PRESS <- c(press(lm.wine1), press(lm.wine2))
+RMSEj <- c(sqrt(press(lm.wine1))/summary(lm.wine1)$df[2], sqrt(press(lm.wine2))/summary(lm.wine2)$df[2])
+
+stat.data <- data.frame(RMSE, SSE, PRESS, RMSEj, row.names = c("Model 1", "Model 2"))
+kable(stat.data, caption = "Statistics for Model Evaluation", align = "c")
+```
+All evaluation statistics of model 1 is greater than those of model 2. Based on this, model 2 does better than model 1.
+
+SSE means the unexplained variation. RMSE can be regard as the standard deviation of the random item. Smaller SSE and smaller RMSE state the model fit the data better. 
+
+PRESS and $\text{RMSE}_{jacknife}$ are calculate the error sum of square and RMSE under the resampling method. Also smaller statistics illustrate a better model.
+
+(i)&nbsp;
+
+I think it is not plausible to use this model to predict quality for wines. Because in this model, the prices was collected in 1990s. After nearly 30 years, we should at least collected the market price in the recent years.
+
+
+#Q2
+(a) &nbsp;
+
+In a 1965 study, Peter Pineo and John Porter used "card and ladder" method to ask Canadians to rank occupations. This method was conducted by names of occupations were printed onto cards that the respondents then slotted onto a ladder representing a gradient of social standing. They examined 204 titles of occupation and covered nationwide population in Canada and got 703 raters in total.[^1]
+
+This score is reliable enough at that time (also adapted for Canada in 1971) because the number of samples is large and it was surveyed in the whole country. However, it may not be suitable in current period. Because the types of occupations have changed a lot and people's opinions to some types of occupation also varied.
+
+[^1]: Prestige Squeeze: Occupational Prestige in Canada since 1965, John Goyder, McGill-Queen's Press - MQUP, 2009
+
+(b) &nbsp;
+
+First, we read the data from the file and have a look at the dataframe.
+```{r}
+# First, we read the data from the file and have a look at the dataframe 
+# to make sure the variables are in the right type. 
+# Change census to be a character type data.
+data <- read_delim("prestige.dat", col_names=TRUE, delim=",")
+data
+data$census <- as.character(data$census)
+
+# Check missing value in each column. Only column "type" has 4 missing value.
+apply(data, 2, function(x) sum(is.na(x)))
+# Change "NA" in type to "no type"
+data$type <- replace(data$type, which(is.na(data$type)), "no type")
+```
+After check the data, we use `ggpairs` to plot the scatterplots matrix.
+```{r fig.width = 10, fig.height = 8, out.width = "500", out.height = "400"}
+# Set the plot information
+theme.info <- theme(plot.title = element_text(size=14, hjust=0.5),
+                    axis.title = element_text(size=10),
+                    axis.text = element_text(size=10))
+
+# Scatterplot matrix
+scatter <- data %>% ggpairs(columns = c("education", "income", "women", "prestige"), 
+                 mapping=ggplot2::aes(color = type, shape = type),
+                 lower = list(continuous = function(data, mapping, ...) {
+                   ggally_points(data = data, mapping = mapping, size = 1, alpha = 0.6) + 
+                     scale_shape_manual(values=c(6, 3, 8, 0))}), 
+                 diag = list(continuous = function(data, mapping, ...) {
+                   ggally_densityDiag(data = data, mapping = mapping, alpha = 0.6)}), legend = c(4, 1))
+scatter
+```
+The scatter plots ((4, 1) and (4, 2)) show the linear relationship between prestige and education and the linear relationship between prestige and income. The correlation coefficients 0.85 and 0.715 also support the strong linear relationships.
+
+The points in scatter plot (4, 3) are basically random and show little relationship between prestige and the proportion of women. 
+The correlation coefficient -0.118 is too small to give the evidence of linear relationship.
+
+By the scatter plots, we can find that there exits some differences in the prestige between different types of occupations. For example, in plot (4, 1), in the middle interval of education, when the education level of "wc" and "bc" are basically similar, the prestige of "bc" is higher than that of "wc"
+
+Therefore, using income, education and type as explanatory variables is reasonable.
+
+
+(c) &nbsp;
+
+```{r}
+data[which(data$type=="no type"), 1]
+```
+Missing “type” includes the occupations of athletes, newsboys, babysitters, farmers. 
+
+I do not think it is advisable to group them together as a fourth professional category in our analysis. Because from the visualization, we could see that the education level and income level are obviously diverse for these four occupations. Also, intuitively, these four occupations not belong to the same category. If grouping them as one type, it does not explain much information, or even decrease the reliability of our model.
+
+(d) &nbsp;
+
+There are interactions between type and education and type and income. 
+
+From the plot (2, 1) and (3, 1), if we see the scatterplot for each type of occupations seperately, we can briefly see the the regression lines are not parallel, i.e. slopes of each regression line are different. 
+
+For instance, in plot (2, 1), the regression line of "wc" seems steeper than that of "bc" and "prof". And In plot (3, 1), the regression line of "prof" seems flatter than those of the other two types of occupations. 
+
+This means the slopes of education and income are also dependent on the type of an occupation.
+
+Here we can check if the interactions are significant.
+
+```{r}
+# regression model
+x.data <- data %>% filter(type!="no type") %>% select(-c(women, occupation.group, census))
+lm.pres1 <- lm(data = x.data, prestige ~ education + income + type + education*type + income*type)
+summary(lm.pres1)
+
+lm.pres2 <- lm(data = x.data, prestige ~ education + income + type + education*type)
+summary(lm.pres2)
+
+lm.pres3 <- lm(data = x.data, prestige ~ education + income + type + income*type)
+summary(lm.pres3)
+```
+Based on these 3 models, if we only take education*type into consider, this interaction term is not significant. But the interaction terms in other two model shows significance. 
+
+Then we use partial F-test to examine these two models.
+```{r}
+anova(lm.pres2, lm.pres1)
+```
+The p-value of partial F-test is 0.05557, so we do not reject the null hypothesis. Then, we only use income * type in our model.
+
+(e) &nbsp;
+
+According to (c), here I use the observations with type "prof", "bc" and "wc". So there are 98 observations to be used to fit the model.
+
+Based on the output, we can see that in this model the intercept ($p = 0.7478$), catagorical term "prof" ($p = 0.2660$) and the interaction term education $\times$ type "prof" ($p = 0.2844$) are not statistically significant. 
+
+The $RMSE$ is 6.318. $R^2$ is 0.8747, which means 87.47% of the variation in response variable can be explained by this regression model. Adjusted $R^2$ is 0.8634, which is also a relatively high value. 
+
+For null hypothesis $H_0$: all the coefficients (except intercept) are 0  ($H_1$: at least one coefficient is not 0), we get F-statistic as 77.64 ($p < 2.2 \times 10^{-6}$). This overall F-test support that our model is statistically significant.
+
+(f) &nbsp;
+
+```{r fig.width = 10, fig.height = 5, out.width = "588", out.height = "378"}
+# Histogram
+h1 <- data %>% filter(type!="no type") %>% ggplot(aes(income)) + 
+  geom_histogram(bins = 20, col = "black", fill = "cadetblue") +
+  ggtitle("Histogram of Income") +
+  labs(x = "Income ($)") +
+  theme.info
+
+h2 <- data %>% filter(type!="no type") %>% ggplot(aes(log(income))) + 
+  geom_histogram(bins = 20, col = "black", fill = "cadetblue") +
+  ggtitle("Histogram of Log Income") +
+  labs(x = "Log of Income (log($))") +
+  theme.info
+grid.arrange(h1, h2, ncol = 2)
+```
+The Histogram of Income shows the distribution of obvious right skewness. After the transformation, the distribution is not right skewed and is more symmetric than the previous one.
+
+(g) &nbsp;
+
+```{r}
+# New regression model
+lm.presnew <- lm(data = x.data, prestige ~ education + log(income) + type + education*type + log(income)*type)
+summary(lm.presnew)
+```
+In this new regression model, the coefficients of catagorical term "wc" ($p = 0.42800$) and the interaction term education $\times$ type "prof" ($p = 0.58998$) are not statistically significant. 
+
+The $RMSE$ is 6.409. $R^2$ is 0.871, which means 87.1% of the variation in response variable can be explained by the new model. Adjusted $R^2$ is 0.8595, which is still a relatively high value. 
+
+For null hypothesis $H_0$: all the coefficients (except intercept) are 0  ($H_1$: at least one coefficient is not 0), we get F-statistic as 75.15 ($p < 2.2 \times 10^{-6}$). This overall F-test support that our model is statistically significant.
+
+(h) &nbsp;
+
+We cannot use a partial F-test in this case because F-test can only be used to compare nested model, which means the explanatory variables of one model are a subset of those in the other model. However, here we use different variables: income and log(income). Therefore, partial F-test is not reasonable.
+
+For this non-nested model, we can use AIC or BIC to get a more preferable model. Because we have the same amount of explanatory variables in this two model, AIC and BIC are equivalent.
+
+BIC of model in (e) is smaller. So, model in (e) is better.
+
+```{r}
+# BIC
+sse.pres1 <- (summary(lm.pres1)$sigma^2)*(summary(lm.pres1)$df[2])
+# equivalent expression
+#sse.pres1 <- sum(summary(lm.pres1)$residual^2)
+BIC.pres1 <- nrow(x.data)*log(sse.pres1/nrow(x.data)) + log(nrow(x.data)) * (8+1)
+sse.presnew <- (summary(lm.presnew)$sigma^2)*(summary(lm.presnew)$df[2])
+BIC.presnew <- nrow(x.data)*log(sse.presnew/nrow(x.data)) + log(nrow(x.data)) * (8+1)
+BIC.pres1 - BIC.presnew
+```
